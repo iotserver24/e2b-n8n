@@ -16,7 +16,10 @@ async function createSandbox() {
   // Create sandbox from the "openclaw" template
   const sandbox = await Sandbox.create('openclaw', {
     envs: {
-      OPENAI_API_KEY: process.env.OPENAI_API_KEY!,
+      CUSTOM_BASE_URL: process.env.CUSTOM_BASE_URL!,
+      CUSTOM_MODEL_ID: process.env.CUSTOM_MODEL_ID!,
+      CUSTOM_API_KEY: process.env.CUSTOM_API_KEY || '',
+      CUSTOM_COMPATIBILITY: process.env.CUSTOM_COMPATIBILITY || 'openai',
       TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN!,
     },
     timeoutMs: 24 * 60 * 60 * 1000, // 24 hour limit
@@ -30,8 +33,11 @@ async function createSandbox() {
 
   console.log('⚙️  Configuring OpenClaw...');
   
-  // Set the default model
-  await sandbox.commands.run('openclaw config set agents.defaults.model.primary openai/gpt-5.2');
+  // Run custom provider onboarding
+  const compatibility = process.env.CUSTOM_COMPATIBILITY || 'openai';
+  await sandbox.commands.run(
+    `openclaw onboard --non-interactive --auth-choice custom-api-key --custom-base-url "${process.env.CUSTOM_BASE_URL}" --custom-model-id "${process.env.CUSTOM_MODEL_ID}" --custom-compatibility "${compatibility}"`
+  );
 
   // Enable the Telegram plugin
   await sandbox.commands.run('openclaw config set plugins.entries.telegram.enabled true');
