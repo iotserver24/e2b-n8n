@@ -13,8 +13,8 @@ async function createSandbox() {
   const GATEWAY_PORT = 18789;
   const GATEWAY_TOKEN = process.env.OPENCLAW_APP_TOKEN || 'my-openclaw-token';
 
-  // Create sandbox from the "openclaw" template
-  const sandbox = await Sandbox.create('openclaw', {
+  // Create sandbox from the "openclaw-custom-8g" template
+  const sandbox = await Sandbox.create('openclaw-custom-8g', {
     envs: {
       CUSTOM_BASE_URL: process.env.CUSTOM_BASE_URL!,
       CUSTOM_MODEL_ID: process.env.CUSTOM_MODEL_ID!,
@@ -33,15 +33,7 @@ async function createSandbox() {
 
   console.log('⚙️  Configuring OpenClaw...');
   
-  // Run custom provider onboarding
-  const compatibility = process.env.CUSTOM_COMPATIBILITY || 'openai';
-  await sandbox.commands.run(
-    `openclaw onboard --non-interactive --auth-choice custom-api-key --custom-base-url "${process.env.CUSTOM_BASE_URL}" --custom-model-id "${process.env.CUSTOM_MODEL_ID}" --custom-compatibility "${compatibility}"`
-  );
 
-  // Enable the Telegram plugin
-  await sandbox.commands.run('openclaw config set plugins.entries.telegram.enabled true');
-  await sandbox.commands.run(`openclaw channels add --channel telegram --token "${process.env.TELEGRAM_BOT_TOKEN}"`);
 
   console.log('🚀 Starting Gateway...');
 
@@ -66,7 +58,17 @@ async function createSandbox() {
     await new Promise((r) => setTimeout(r, 1000));
   }
 
-  const url = `https://${sandbox.getHost(GATEWAY_PORT)}/?token=${GATEWAY_TOKEN}`;
+  console.log('⚙️  Configuring OpenClaw...');
+  // Enable the Telegram plugin now that gateway has initialized the base plugins array
+  await sandbox.commands.run(`node -e "const fs = require('fs'); const path = require('path'); const p = path.join(process.env.HOME, '.openclaw/openclaw.json'); let c = JSON.parse(fs.readFileSync(p)); c.plugins = c.plugins || {}; c.plugins.entries = c.plugins.entries || {}; c.plugins.entries.telegram = c.plugins.entries.telegram || {}; c.plugins.entries.telegram.enabled = true; fs.writeFileSync(p, JSON.stringify(c, null, 2));"`);
+  
+  // Doctor might complain about channels if gateway initializes them differently, but doctor --fix usually works if background gateway is running
+  await sandbox.commands.run(`openclaw doctor --fix`);
+  await sandbox.commands.run(`openclaw channels add --channel telegram --token "${process.env.TELEGRAM_BOT_TOKEN}"`);
+
+  // The new required URL format: {port}-{id}.e2b.app
+  const host = `${GATEWAY_PORT}-${sandbox.sandboxId}.e2b.app`;
+  const url = `https://${host}/?token=${GATEWAY_TOKEN}`;
   console.log(`\n🌐 Gateway URL: ${url}`);
 
   console.log('\n📲 Telegram Pairing:');

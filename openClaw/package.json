@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build:template": "npx tsx src/template.ts",
+    "build:template": "npx tsx src/build.prod.ts",
     "start": "npx tsx src/run.ts",
     "typecheck": "tsc --noEmit"
   },
