@@ -33,6 +33,11 @@ async function createSandbox() {
 
   console.log('⚙️  Configuring OpenClaw...');
   
+  // Run custom provider onboarding
+  const compatibility = process.env.CUSTOM_COMPATIBILITY || 'openai';
+  await sandbox.commands.run(
+    `openclaw onboard --non-interactive --skip-health --accept-risk --auth-choice custom-api-key --custom-base-url "${process.env.CUSTOM_BASE_URL}" --custom-model-id "${process.env.CUSTOM_MODEL_ID}" --custom-compatibility "${compatibility}"`
+  );
 
 
   console.log('🚀 Starting Gateway...');
