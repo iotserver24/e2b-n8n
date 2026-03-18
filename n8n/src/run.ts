@@ -17,12 +17,15 @@ async function main() {
 
   // Create sandbox with auto-resume lifecycle
   const sandbox = await Sandbox.create('n8n-sandbox', {
-    timeoutMs: 24 * 60 * 60 * 1000, // 24 hours (Pro plan max)
+    timeoutMs: 1 * 60 * 60 * 1000, // 1 hour limit
     lifecycle: {
       onTimeout: 'pause',    // Pause instead of kill on timeout
       autoResume: true,       // Auto-resume when traffic arrives
     },
   });
+
+  // Ensure 1hr timeout (3,600,000ms)
+  await sandbox.setTimeout(1 * 60 * 60 * 1000);
 
   console.log(`✅ Sandbox created!`);
   console.log(`   Sandbox ID: ${sandbox.sandboxId}`);
@@ -48,7 +51,7 @@ async function main() {
   console.log(`  🌐 URL: ${n8nUrl}`);
   console.log(`  🆔 Sandbox ID: ${sandbox.sandboxId}`);
   console.log('');
-  console.log('  ⏱  Timeout: 24 hours → auto-pause → auto-resume');
+  console.log('  ⏱  Timeout: 1 hour → auto-pause → auto-resume');
   console.log('  💡 The sandbox pauses when idle and resumes');
   console.log('     automatically when you visit the URL.');
   console.log('  ⚠️  Do NOT call .kill() or it\'s gone forever!');

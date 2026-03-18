@@ -12,12 +12,15 @@ async function createSandbox() {
 
   // Create sandbox from the "n8n-sandbox" tag we built earlier
   const sandbox = await Sandbox.create('n8n-sandbox', {
-    timeoutMs: 24 * 60 * 60 * 1000, // 24 hour limit
+    timeoutMs: 1 * 60 * 60 * 1000, // 1 hour limit
     lifecycle: {
       onTimeout: 'pause',
       autoResume: true,
     },
   });
+
+  // Ensure 1hr timeout (3,600,000ms)
+  await sandbox.setTimeout(1 * 60 * 60 * 1000);
 
   const host = sandbox.getHost(5678);
   const n8nUrl = `https://${host}`;

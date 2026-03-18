@@ -20,25 +20,34 @@ async function createSandbox() {
       CUSTOM_MODEL_ID: process.env.CUSTOM_MODEL_ID!,
       CUSTOM_API_KEY: process.env.CUSTOM_API_KEY || '',
       CUSTOM_COMPATIBILITY: process.env.CUSTOM_COMPATIBILITY || 'openai',
-      TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN!,
     },
-    timeoutMs: 24 * 60 * 60 * 1000, // 24 hour limit
+    timeoutMs: 1 * 60 * 60 * 1000, // 1 hour limit
     lifecycle: {
       onTimeout: 'pause',
       autoResume: true,
     },
   });
 
+  // Ensure 1hr timeout (3,600,000ms)
+  await sandbox.setTimeout(1 * 60 * 60 * 1000);
+
   console.log(`✅ Sandbox created successfully! ID: ${sandbox.sandboxId}`);
 
-  console.log('⚙️  Configuring OpenClaw...');
+  console.log('⚙️  Fixing OpenClaw plugin permissions & config...');
   
+  // Fix permissions on the extensions directory (prevent mode=777 security blocks)
+  await sandbox.commands.run(`sudo chmod -R 755 /usr/local/lib/node_modules/openclaw/extensions/`);
+  
+  // Remove the currently broken memory-core slot to prevent validation failures (ignore error if already unset)
+  await sandbox.commands.run(`openclaw config unset plugins.slots.memory || true`);
+
+  console.log('⚙️  Configuring OpenClaw...');
+
   // Run custom provider onboarding
   const compatibility = process.env.CUSTOM_COMPATIBILITY || 'openai';
   await sandbox.commands.run(
     `openclaw onboard --non-interactive --skip-health --accept-risk --auth-choice custom-api-key --custom-base-url "${process.env.CUSTOM_BASE_URL}" --custom-model-id "${process.env.CUSTOM_MODEL_ID}" --custom-compatibility "${compatibility}"`
   );
-
 
   console.log('🚀 Starting Gateway...');
 
@@ -63,25 +72,11 @@ async function createSandbox() {
     await new Promise((r) => setTimeout(r, 1000));
   }
 
-  console.log('⚙️  Configuring OpenClaw...');
-  // Enable the Telegram plugin now that gateway has initialized the base plugins array
-  await sandbox.commands.run(`node -e "const fs = require('fs'); const path = require('path'); const p = path.join(process.env.HOME, '.openclaw/openclaw.json'); let c = JSON.parse(fs.readFileSync(p)); c.plugins = c.plugins || {}; c.plugins.entries = c.plugins.entries || {}; c.plugins.entries.telegram = c.plugins.entries.telegram || {}; c.plugins.entries.telegram.enabled = true; fs.writeFileSync(p, JSON.stringify(c, null, 2));"`);
-  
-  // Doctor might complain about channels if gateway initializes them differently, but doctor --fix usually works if background gateway is running
-  await sandbox.commands.run(`openclaw doctor --fix`);
-  await sandbox.commands.run(`openclaw channels add --channel telegram --token "${process.env.TELEGRAM_BOT_TOKEN}"`);
-
   // The new required URL format: {port}-{id}.e2b.app
   const host = `${GATEWAY_PORT}-${sandbox.sandboxId}.e2b.app`;
   const url = `https://${host}/?token=${GATEWAY_TOKEN}`;
   console.log(`\n🌐 Gateway URL: ${url}`);
 
-  console.log('\n📲 Telegram Pairing:');
-  console.log('1. Open your bot in Telegram and send a message (e.g., "hi").');
-  console.log('2. The bot will reply with a Pairing Code.');
-  console.log('3. Run the following command here to approve it (replace <CODE>):');
-  console.log(`   npx tsx src/approve.ts <CODE> ${sandbox.sandboxId}`);
-  
   return sandbox;
 }
 

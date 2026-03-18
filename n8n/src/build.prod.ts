@@ -13,12 +13,12 @@ import { template } from './template.js';
 
 async function main() {
   console.log('🔨 Building n8n-sandbox template on E2B...');
-  console.log('   CPU: 16 cores | RAM: 16 GB');
+  console.log('   CPU: 8 cores | RAM: 8 GB');
   console.log('');
 
   const result = await Template.build(template, 'n8n-sandbox', {
-    cpuCount: 16,
-    memoryMB: 16384,
+    cpuCount: 8,
+    memoryMB: 8192,
     onBuildLogs: defaultBuildLogger(),
   });
 
